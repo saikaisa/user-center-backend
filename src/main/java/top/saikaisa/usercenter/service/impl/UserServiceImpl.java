@@ -6,7 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.DigestUtils;
 import org.springframework.stereotype.Service;
+import top.saikaisa.usercenter.common.ErrorCode;
+import top.saikaisa.usercenter.exception.BusinessException;
+import top.saikaisa.usercenter.mapper.InvitationlibMapper;
 import top.saikaisa.usercenter.mapper.UserMapper;
+import top.saikaisa.usercenter.model.domain.Invitationlib;
 import top.saikaisa.usercenter.model.domain.User;
 import top.saikaisa.usercenter.service.UserService;
 
@@ -28,22 +32,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Resource
     private UserMapper userMapper;
+    @Resource
+    private InvitationlibMapper invitationlibMapper;
 
     // 盐值
     private static final String SALT = "saikai";
 
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword) {
+    public long userRegister(String userAccount, String userPassword, String checkPassword, String invitationCode) {
         // 1.1 校验
         // 这里使用 apache 的 commons-lang3 包中的 StringUtils 类，便捷地校验字符串是否为空
-        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
-            return -1;
+        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, invitationCode)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数不能为空");
         }
         if (userAccount.length() < 4) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号长度不足");
         }
         if (userPassword.length() < 8 || checkPassword.length() < 8) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度不足");
         }
 
         // 1.2 账户不能包含特殊字符
@@ -55,12 +61,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
          */
         Matcher matcher = Pattern.compile(regEx).matcher(userAccount);
         if (matcher.find()) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号不能包含特殊字符");
         }
 
         // 1.3 密码和校验密码必须一致
         if (!userPassword.equals(checkPassword)) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码和校验密码不一致");
         }
 
         // 1.4 账户不能重复
@@ -68,8 +74,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         queryWrapper.eq("userAccount", userAccount);
         long count = userMapper.selectCount(queryWrapper);
         if (count > 0) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号已存在");
         }
+
+        // 1.5 邀请码必须正确
+        QueryWrapper<Invitationlib> invQueryWrapper = new QueryWrapper<>();
+        invQueryWrapper.eq("invitationCode", invitationCode);
+        // 是否重复或者已被使用
+        Invitationlib invitationlib = invitationlibMapper.selectOne(invQueryWrapper);
+        if (invitationlib == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邀请码不存在");
+        }
+        if (invitationlib.getIsUsed() == 1) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邀请码已被使用");
+        }
+        // 如果邀请码可用，则将其设置为已使用
+        invitationlib.setIsUsed(1);
+        // 这里要更新一下，才能将 isUsed 的值更新到数据库中
+        invitationlibMapper.updateById(invitationlib);
 
         // 2. 加密
         String md5Password = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
@@ -78,9 +100,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         User user = new User();
         user.setUserAccount(userAccount);
         user.setPassword(md5Password);
+        user.setInvitationCode(invitationCode);
+        // 将 user 对象插入到数据库中
         boolean saveResult = this.save(user);
         if (!saveResult) {
-            return -1;
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败");
         }
 
         return user.getId();
@@ -91,14 +115,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 1.1 校验
         // 这里使用 apache 的 commons-lang3 包中的 StringUtils 类，便捷地校验字符串是否为空
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            // todo 修改为自定义异常
-            return null;
+            // TODO 修改为自定义异常
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号或密码不能为空");
         }
         if (userAccount.length() < 4) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号长度不足");
         }
         if (userPassword.length() < 8) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度不足");
         }
         // 1.2 账户不能包含特殊字符
         String regEx = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%…… &*（）——+|{}【】‘；：”“’。，、？]";
@@ -109,7 +133,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
          */
         Matcher matcher = Pattern.compile(regEx).matcher(userAccount);
         if (matcher.find()) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号不能包含特殊字符");
         }
 
         // 2. 校验密码
@@ -122,7 +146,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 用户不存在
         if (user == null) {
             log.info("user login failed, userAccount cannot match userPassword.");
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号或密码错误");
         }
 
         // 3. 脱敏
@@ -142,6 +166,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      */
     @Override
     public User getSafetyUser(User originUser){
+        if (originUser == null) {
+            throw new BusinessException(ErrorCode.PARAMS_NULL_ERROR, "请求的用户不存在");
+        }
         User safetyUser = new User();
         safetyUser.setId(originUser.getId());
         safetyUser.setUsername(originUser.getUsername());
@@ -155,6 +182,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setCreateTime(originUser.getCreateTime());
         safetyUser.setUpdateTime(originUser.getUpdateTime());
         return safetyUser;
+    }
+
+    @Override
+    public int userLogout(HttpServletRequest request) {
+        // 移除登录态
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        return 1;
     }
 }
 

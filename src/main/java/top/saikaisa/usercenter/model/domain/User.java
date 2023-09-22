@@ -80,6 +80,11 @@ public class User implements Serializable {
     @TableLogic
     private Integer isDelete;
 
+    /**
+     * 邀请码
+     */
+    private String invitationCode;
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }
