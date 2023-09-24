@@ -2,6 +2,7 @@ package top.saikaisa.usercenter.service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import top.saikaisa.usercenter.model.domain.User;
 
 import javax.annotation.Resource;
 
@@ -35,35 +36,36 @@ public class UserServiceTest {
         String userAccount = "Saikai";
         String userPassword = "";
         String checkPassword = "1234567";
-        long result = userService.userRegister(userAccount, userPassword, checkPassword);
+        String invitationCode = "123456";
+        long result = userService.userRegister(userAccount, userPassword, checkPassword, invitationCode);
         assertEquals(-1, result);
 
         userAccount = "sa";
         userPassword = "123456";
-        result = userService.userRegister(userAccount, userPassword, checkPassword);
+        result = userService.userRegister(userAccount, userPassword, checkPassword, invitationCode);
         assertEquals(-1, result);
 
         userAccount = "Saikai";
-        result = userService.userRegister(userAccount, userPassword, checkPassword);
+        result = userService.userRegister(userAccount, userPassword, checkPassword, invitationCode);
         assertEquals(-1, result);
 
         userAccount = "Sai kai";
         userPassword = "12345678";
-        result = userService.userRegister(userAccount, userPassword, checkPassword);
+        result = userService.userRegister(userAccount, userPassword, checkPassword, invitationCode);
         assertEquals(-1, result);
 
         userAccount = "Saikai";
         checkPassword = "123456789";
-        result = userService.userRegister(userAccount, userPassword, checkPassword);
+        result = userService.userRegister(userAccount, userPassword, checkPassword, invitationCode);
         assertEquals(-1, result);
 
         userAccount = "testSaikai";
         checkPassword = "12345678";
-        result = userService.userRegister(userAccount, userPassword, checkPassword);
+        result = userService.userRegister(userAccount, userPassword, checkPassword, invitationCode);
         assertEquals(-1, result);
 
         userAccount = "Saikai";
-        result = userService.userRegister(userAccount, userPassword, checkPassword);
+        result = userService.userRegister(userAccount, userPassword, checkPassword, invitationCode);
         assertTrue(result > 0);
 
     }
