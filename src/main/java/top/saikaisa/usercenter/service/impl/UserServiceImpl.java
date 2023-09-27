@@ -99,6 +99,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 3. 插入数据
         User user = new User();
         user.setUserAccount(userAccount);
+        user.setUsername(userAccount);
+        user.setAvatarUrl("https://img.51miz.com/Element/00/88/60/42/3cb805be_E886042_a75650be.png");
         user.setPassword(md5Password);
         user.setInvitationCode(invitationCode);
         // 将 user 对象插入到数据库中
