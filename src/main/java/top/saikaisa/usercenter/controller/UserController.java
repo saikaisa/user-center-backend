@@ -2,11 +2,7 @@ package top.saikaisa.usercenter.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import top.saikaisa.usercenter.common.BaseResponse;
 import top.saikaisa.usercenter.common.ErrorCode;
 import top.saikaisa.usercenter.common.ResultUtils;
@@ -115,7 +111,7 @@ public class UserController {
     }
 
     @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteUsers(@RequestBody Long id, HttpServletRequest request) {
+    public BaseResponse<Boolean> deleteUsers(@RequestParam(value = "DeleteId") Long id, HttpServletRequest request) {
         if (!isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_PERMISSION);
         }

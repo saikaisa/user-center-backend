@@ -117,7 +117,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 1.1 校验
         // 这里使用 apache 的 commons-lang3 包中的 StringUtils 类，便捷地校验字符串是否为空
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            // TODO 修改为自定义异常
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号或密码不能为空");
         }
         if (userAccount.length() < 4) {
@@ -181,6 +180,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setEmail(originUser.getEmail());
         safetyUser.setUserRole(originUser.getUserRole());
         safetyUser.setUserStatus(0);
+        safetyUser.setInvitationCode(originUser.getInvitationCode());
         safetyUser.setCreateTime(originUser.getCreateTime());
         safetyUser.setUpdateTime(originUser.getUpdateTime());
         return safetyUser;
